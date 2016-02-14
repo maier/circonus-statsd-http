@@ -30,8 +30,8 @@ circonus: {
 
 option | required | type | description
 ------ | -------- | ---- | -----------
-`check_url` | **yes** | string | submission URL for the httptrap check for this host/instance
-`cert_url` | no | string | broker CA certificate URL [default: "http://login.circonus.com/pki/ca.crt"]. Note: URL **must** be set for a _Circonus Inside_ installation.
+`check_url` | **yes** | string | HTTPTRAP check submission URL to which metrics will be sent
+`cert_url` | no* | string | broker CA certificate URL [default: "http://login.circonus.com/pki/ca.crt"].<br />* Note: URL **must** be set for a _Circonus Inside_ installation.
 `globalPrefix` | no | string | global prefix to use for sending stats to Circonus [default: ""]
 `prefixCounter` | no | string | prefix for counter metrics [default: "counters"]
 `prefixTimer` | no | string | prefix for timer metrics [default: "timers"]
