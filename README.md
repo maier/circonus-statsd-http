@@ -5,7 +5,7 @@ StatsD backend for [Circonus](http://circonus.com). The existing graphite backen
 ## Use
 
 1. Install [StatsD](https://github.com/etsy/statsd)
-2. Copy `circonus.js` into the `backends/` where StatsD is installed
+2. Copy `circonus.js` into `backends/` (where StatsD is installed)
 3. Create HTTPTRAP check in Circonus
 4. Configure Circonus backend (see below)
 5. Start, or restart, StatsD 
