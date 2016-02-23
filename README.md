@@ -1,6 +1,6 @@
-# circonus-statsd
+# circonus-statsd-http
 
-StatsD backend for [Circonus](http://circonus.com). The existing graphite backend was used as a template.
+StatsD backend for [Circonus](http://circonus.com), send metrics via HTTPTRAP check. The existing graphite backend was used as a template.
 
 ## Use
 
