@@ -8,7 +8,7 @@ StatsD backend for [Circonus](http://circonus.com), send metrics via HTTPTRAP ch
 2. Copy `circonus.js` into `backends/` (where StatsD is installed)
 3. Create HTTPTRAP check in Circonus
 4. Configure Circonus backend (see below)
-5. Start, or restart, StatsD 
+5. Start, or restart, StatsD
 
 ## Configuration options
 
@@ -40,6 +40,5 @@ option | required | type | description
 `prefixTimer` | no | string | prefix for timer metrics [default: "timers"]
 `prefixGauge` | no | string | prefix for gauge metrics [default: "gauges"]
 `prefixSet` | no | string | prefix for set metrics [default: "sets"]
-`sendTimerDerivatives` | no | boolean | send [standard StatsD derivatives](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#timing) for timer metrics [default: true]
+`sendTimerDerivatives` | no | boolean | send [standard StatsD derivatives](https://github.com/etsy/statsd/blob/master/docs/metric_types.md#timing) for timer metrics [default: true]. Raw timer data is sent to Circonus as a histogram.
 `sendMemoryStats` | no | boolean | send memory utilization metrics ([process.memoryUsage()](https://nodejs.org/api/process.html#process_process_memoryusage)) for StatsD process [default: true]
-
