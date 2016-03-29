@@ -64,6 +64,7 @@ var globalKeySanitize = true;
 
 // other options
 var sendTimerDerivatives = true;
+var sendRawTimers = false;
 var sendMemoryStats = true;
 var forceGC = false;
 
@@ -302,11 +303,53 @@ var flush_stats = function circonus_flush(ts, metrics) {
         }
     }
 
-    // histogram timer data
+    // prepare histogram timer data
+    var histogram = function make_histogram(values) {
+        var temp = {}, ret = [];
+        var get_bucket = function get_bucket_id(val) {
+            var v = val, vString = "", exp = 0;
+            if (v < 0) {
+                vString = '-';
+                v = v * -1;
+            }
+            while (v < 10) {
+                v = v * 10;
+                exp = exp - 1;
+            }
+            while (v >= 100) {
+                v = v / 10;
+                exp = exp + 1;
+            }
+            v = Math.floor(v);
+            v = v / 10;
+            exp = exp + 1;
+            vString = 'H[' + vString + v.toString() + 'e' + exp.toString() + ']';
+            return vString;
+        }
+        for (var i = 0; i < values.length; i++) {
+            var bucket = get_bucket(values[i]);
+            if (!temp.hasOwnProperty(bucket)) {
+                temp[bucket] = 1;
+            } else {
+                temp[bucket] = temp[bucket] + 1;
+            }
+        }
+        for (var bkt in temp) {
+            if (temp.hasOwnProperty(bkt)) {
+                ret.push( "" + bkt + "=" + temp[bkt] );
+            }
+        }
+        return ret;
+    }
+
     for (key in timers) {
         namespace = timerNamespace.concat(sk(key));
         the_key = namespace.join(metricDelimiter);
-        stats[the_key] = { _type: "i", _value: timers[key] };
+        if (sendRawTimers) {
+            stats[the_key] = { _type: "i", _value: timers[key] };
+        } else {
+            stats[the_key] = { _type: "n", _value: histogram(timers[key]) };
+        }
     }
 
     if (sendTimerDerivatives) {
