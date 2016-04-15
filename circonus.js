@@ -8,7 +8,7 @@
  *
  * To enable this backend, include 'circonus' in the backends configuration array:
  *
- *   backends: ['circonus']
+ *   backends: ['./backends/circonus']
  *
  * Options in config.js
  *
@@ -417,6 +417,7 @@ exports.init = function circonus_init(startup_time, config, events, logger) {
     prefixSet = config.circonus.prefixSet || "sets";
     prefixInternalMetrics = config.prefixInternalMetrics || "statsd";
     sendTimerDerivatives = config.circonus.sendTimerDerivatives || true;
+    sendRawTimers = config.circonus.sendRawTimers || false;
     sendMemoryStats = config.circonus.sendMemoryStats || true;
     forceGC = config.circonus.forceGC || false;
 
