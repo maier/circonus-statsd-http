@@ -61,6 +61,7 @@ The *bare minimum* would be:
   address: "127.0.0.1",
   flushInterval: 60000,
   backends: [ "./backends/circonus" ],
+  keyNameSanitize: false,
   circonus: {
     check_url: "..."
   }

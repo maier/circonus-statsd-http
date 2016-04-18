@@ -164,6 +164,8 @@ var get_ca_cert = function circonus_get_ca_cert(cert_url) {
         req.on("error", onReqError);
         req.on("response", onReqResponse);
         req.end();
+    } else {
+        l.log("Missing cert url, circonus backend disabled.");
     }
 
 };
@@ -408,24 +410,56 @@ var backend_status = function circonus_status(writeCb) {
 exports.init = function circonus_init(startup_time, config, events, logger) {
     debug = config.debug;
     l = logger;
+    prefixInternalMetrics = config.prefixInternalMetrics || "statsd";
     config.circonus = config.circonus || {};
     check_url = config.circonus.check_url || null;
     globalPrefix = config.circonus.globalPrefix || "";
-    prefixCounter = config.circonus.prefixCounter || "counters";
-    prefixTimer = config.circonus.prefixTimer || "timers";
-    prefixGauge = config.circonus.prefixGauge || "gauges";
-    prefixSet = config.circonus.prefixSet || "sets";
-    prefixInternalMetrics = config.prefixInternalMetrics || "statsd";
-    sendTimerDerivatives = config.circonus.sendTimerDerivatives || true;
-    sendRawTimers = config.circonus.sendRawTimers || false;
-    sendMemoryStats = config.circonus.sendMemoryStats || true;
-    forceGC = config.circonus.forceGC || false;
+    prefixCounter = "counters";
+    prefixTimer = "timers";
+    prefixGauge = "gauges";
+    prefixSet = "sets";
+    sendTimerDerivatives = true;
+    sendRawTimers = false;
+    sendMemoryStats = true;
+    forceGC = false;
 
     if (check_url === null) {
         l.log("No check URL defined for Circonus, backend disabled.");
     }
 
-    get_ca_cert(url.parse(config.circonusCACertURL || "http://login.circonus.com/pki/ca.crt"));
+    get_ca_cert(url.parse(config.circonus.cert_url || "http://login.circonus.com/pki/ca.crt"));
+
+    if (config.circonus.hasOwnProperty("sendTimerDerivatives")) {
+        sendTimerDerivatives = config.circonus.sendTimerDerivatives;
+    }
+
+    if (config.circonus.hasOwnProperty("sendRawTimers")) {
+        sendRawTimers = config.circonus.sendRawTimers;
+    }
+
+    if (config.circonus.hasOwnProperty("sendMemoryStats")) {
+        sendMemoryStats = config.circonus.sendMemoryStats;
+    }
+
+    if (config.circonus.hasOwnProperty("forceGC")) {
+        forceGC = config.circonus.forceGC;
+    }
+
+    if (config.circonus.hasOwnProperty("prefixCounter")) {
+        prefixCounter = config.circonus.prefixCounter;
+    }
+
+    if (config.circonus.hasOwnProperty("prefixTimer")) {
+        prefixTimer = config.circonus.prefixTimer;
+    }
+
+    if (config.circonus.hasOwnProperty("prefixGauge")) {
+        prefixGauge = config.circonus.prefixGauge;
+    }
+
+    if (config.circonus.hasOwnProperty("prefixSet")) {
+        prefixSet = config.circonus.prefixSet;
+    }
 
     if (globalPrefix !== "") {
         globalNamespace.push(globalPrefix);
@@ -453,9 +487,8 @@ exports.init = function circonus_init(startup_time, config, events, logger) {
     circonusStats.flush_time = 0;
     circonusStats.flush_length = 0;
 
-    globalKeySanitize = config.keyNameSanitize || true;
-
-    flush_counts = config.flush_counts || true;
+    globalKeySanitize = typeof(config.keyNameSanitize) === "undefined" ? false : config.keyNameSanitize;
+    flush_counts = typeof(config.flush_counts) === "undefined" ? true : config.flush_counts;
 
     events.on("flush", flush_stats);
     events.on("status", backend_status);
