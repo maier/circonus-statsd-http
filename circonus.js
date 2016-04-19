@@ -93,7 +93,7 @@ var get_ca_cert = function circonus_get_ca_cert(cert_url) {
         }
 
         if (debug) {
-            l.log(err);
+            l.log(util.format("Cert request error: %j", err));
         }
 
         req = null;
@@ -182,12 +182,16 @@ var post_stats = function circonus_post_stats(metrics) {
     var req = null;
     var reqTimerId = null;
 
+    if (debug) {
+        l.log("post");
+    }
+
     function onReqError(err) {
         if (reqTimerId) {
             clearTimeout(reqTimerId);
         }
         if (debug) {
-            l.log(util.format("Error sending to circonus: ", err));
+            l.log(util.format("Error sending to circonus: %j", err));
         }
         req = null;
     }
@@ -227,7 +231,7 @@ var post_stats = function circonus_post_stats(metrics) {
                 circonusStats.flush_length = metric_json.length;
                 circonusStats.last_flush = Math.round(new Date().getTime() / MILLISECOND);
             } else {
-                l.log(util.format("Unable to send metrics to Circonus", res.statusCode, result_json));
+                l.log(util.format("Unable to send metrics to Circonus http:%d (%s)", res.statusCode, result_json));
             }
 
             req = null;
@@ -248,6 +252,9 @@ var post_stats = function circonus_post_stats(metrics) {
             metrics[ namespace.concat("num_stats").join(metricDelimiter) ] = Object.keys(metrics).length + 1; // +1 for this one...
 
             metric_json = JSON.stringify(metrics);
+            if (debug) {
+                l.log(util.format("Metrics: %j", metrics));
+            }
 
             reqTimerId = setTimeout(onReqTimeout, MAX_REQUEST_TIME * MILLISECOND);
             req = https.request(check_cfg);
@@ -258,7 +265,7 @@ var post_stats = function circonus_post_stats(metrics) {
 
         } catch (err) {
             if (debug) {
-                l.log(err);
+                l.log(util.format("Post error: %j", err));
             }
             circonusStats.last_exception = Math.round(new Date().getTime() / MILLISECOND);
         }
@@ -278,6 +285,10 @@ var flush_stats = function circonus_flush(ts, metrics) {
     var timer_data = metrics.timer_data;
     var statsd_metrics = metrics.statsd_metrics;
 
+    if (debug) {
+        l.log("flush");
+    }
+
     // Sanitize key if not done globally
     var sk = function sanitize_key(key_name) {
         if (globalKeySanitize) {
@@ -293,6 +304,9 @@ var flush_stats = function circonus_flush(ts, metrics) {
     var the_key = null;
     var stats = {};
 
+    if (debug) {
+        l.log("flush.counters");
+    }
     for (key in counters) {
         var value = counters[key];
         var valuePerSecond = counter_rates[key]; // pre-calculated "per second" rate
@@ -311,12 +325,14 @@ var flush_stats = function circonus_flush(ts, metrics) {
         var get_bucket = function get_bucket_id(val) {
             var v = val, vString = "", exp = 0;
             if (v < 0) {
-                vString = '-';
+                vString = "-";
                 v = v * -1;
             }
-            while (v < 10) {
-                v = v * 10;
-                exp = exp - 1;
+            if (v > 0) {
+                while (v < 10) {
+                    v = v * 10;
+                    exp = exp - 1;
+                }
             }
             while (v >= 100) {
                 v = v / 10;
@@ -344,6 +360,9 @@ var flush_stats = function circonus_flush(ts, metrics) {
         return ret;
     }
 
+    if (debug) {
+        l.log("flush.timers");
+    }
     for (key in timers) {
         namespace = timerNamespace.concat(sk(key));
         the_key = namespace.join(metricDelimiter);
@@ -355,6 +374,9 @@ var flush_stats = function circonus_flush(ts, metrics) {
     }
 
     if (sendTimerDerivatives) {
+        if (debug) {
+            l.log("flush.timerDerivatives");
+        }
         // the derivative metrics from timers
         for (key in timer_data) {
             namespace = timerNamespace.concat(sk(key));
@@ -364,9 +386,9 @@ var flush_stats = function circonus_flush(ts, metrics) {
                     stats[the_key + metricDelimiter + timer_data_key] = timer_data[key][timer_data_key];
                 } else {
                     for (var timer_data_sub_key in timer_data[key][timer_data_key]) {
-                        if (debug) {
-                            l.log(timer_data[key][timer_data_key][timer_data_sub_key].toString());
-                        }
+                        // if (debug) {
+                        //     l.log(timer_data[key][timer_data_key][timer_data_sub_key].toString());
+                        // }
                         stats[the_key + metricDelimiter + timer_data_key + metricDelimiter + timer_data_sub_key] =
                             timer_data[key][timer_data_key][timer_data_sub_key];
                     }
@@ -375,14 +397,23 @@ var flush_stats = function circonus_flush(ts, metrics) {
         }
     }
 
+    if (debug) {
+        l.log("flush.gauges");
+    }
     for (key in gauges) {
         stats[ gaugesNamespace.concat(sk(key)).join(metricDelimiter) ] = gauges[ key ];
     }
 
+    if (debug) {
+        l.log("flush.sets");
+    }
     for (key in sets) {
         stats[ setsNamespace.concat([ sk(key), "count" ]).join(metricDelimiter) ] = sets[ key ].size();
     }
 
+    if (debug) {
+        l.log("flush.internal");
+    }
     namespace = globalNamespace.concat(prefixInternalMetrics);
     stats[namespace.concat([ circonusPrefix, "calculation_time" ]).join(metricDelimiter)] = (Date.now() - starttime);
     for (key in statsd_metrics) {
@@ -393,6 +424,9 @@ var flush_stats = function circonus_flush(ts, metrics) {
         stats[ namespace.concat("memory").join(metricDelimiter) ] = process.memoryUsage();
     }
 
+    if (debug) {
+        l.log("flush.call_post");
+    }
     post_stats(stats);
 
 };
@@ -428,6 +462,11 @@ exports.init = function circonus_init(startup_time, config, events, logger) {
     }
 
     get_ca_cert(url.parse(config.circonus.cert_url || "http://login.circonus.com/pki/ca.crt"));
+
+    // so the backend debugging can be toggled independently of main debug
+    if (config.circonus.hasOwnProperty("debug")) {
+        debug = config.circonus.debug;
+    }
 
     if (config.circonus.hasOwnProperty("sendTimerDerivatives")) {
         sendTimerDerivatives = config.circonus.sendTimerDerivatives;
