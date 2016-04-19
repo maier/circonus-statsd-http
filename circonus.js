@@ -324,15 +324,16 @@ var flush_stats = function circonus_flush(ts, metrics) {
         var temp = {}, ret = [];
         var get_bucket = function get_bucket_id(val) {
             var v = val, vString = "", exp = 0;
+            if (val === 0) {
+                return "H[0]";
+            }
             if (v < 0) {
                 vString = "-";
                 v = v * -1;
             }
-            if (v > 0) {
-                while (v < 10) {
-                    v = v * 10;
-                    exp = exp - 1;
-                }
+            while (v < 10) {
+                v = v * 10;
+                exp = exp - 1;
             }
             while (v >= 100) {
                 v = v / 10;
